@@ -1,0 +1,97 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // User Profile Validation
+    function isValidUser(data, isCreate) {
+      let hasRequired = data.keys().hasAll(['goal', 'createdAt', 'updatedAt']);
+      let validKeys = isCreate 
+        ? (data.keys().size() == 3) 
+        : true; // Updates use affectedKeys() check
+      
+      let validGoal = data.goal is string && (data.goal == 'Track Cycle' || data.goal == 'Conceive' || data.goal == 'None');
+      let validCreatedAt = data.createdAt == request.time || (!isCreate && data.createdAt == existing().createdAt);
+      let validUpdatedAt = data.updatedAt == request.time;
+      
+      return hasRequired && validKeys && validGoal && validCreatedAt && validUpdatedAt;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Blanket reads not allowed
+      
+      allow create: if isOwner(userId)
+                    && isValidId(userId)
+                    && isValidUser(incoming(), true);
+                    
+      allow update: if isOwner(userId)
+                    && isValidId(userId)
+                    && isValidUser(incoming(), false)
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['goal', 'updatedAt'])
+                    && incoming().createdAt == existing().createdAt;
+                    
+      allow delete: if false;
+      
+      // Daily Logs Validation
+      function isValidDailyLog(data) {
+        // Optional fields check, ensuring we don't allow ghost fields.
+        let allowedKeys = ['mood', 'mucus', 'symptoms', 'updatedAt'];
+        let hasNoGhostFields = data.keys().hasOnly(allowedKeys);
+        
+        let hasRequired = data.keys().hasAll(['updatedAt']);
+        
+        let validMood = !('mood' in data) || (data.mood is string && data.mood.size() <= 50);
+        let validMucus = !('mucus' in data) || (data.mucus is string && data.mucus.size() <= 50);
+        let validSymptoms = !('symptoms' in data) || (
+          data.symptoms is list && 
+          data.symptoms.size() <= 20 && 
+          (data.symptoms.size() == 0 || (data.symptoms[0] is string && data.symptoms[0].size() <= 50))
+        );
+        let validUpdatedAt = data.updatedAt == request.time;
+        
+        return hasNoGhostFields && hasRequired && validMood && validMucus && validSymptoms && validUpdatedAt;
+      }
+
+      match /dailyLogs/{dateId} {
+        allow read: if isOwner(userId) && isValidId(dateId);
+        
+        allow create: if isOwner(userId)
+                      && isValidId(dateId)
+                      && exists(/databases/$(database)/documents/users/$(userId))
+                      && isValidDailyLog(incoming());
+                      
+        allow update: if isOwner(userId)
+                      && isValidId(dateId)
+                      && isValidDailyLog(incoming())
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['mood', 'mucus', 'symptoms', 'updatedAt']);
+                      
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

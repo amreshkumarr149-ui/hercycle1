@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "user": {
+      "title": "User Profile",
+      "description": "User profile containing goals and preferences.",
+      "type": "object",
+      "properties": {
+        "goal": {
+          "type": "string",
+          "enum": ["Track Cycle", "Conceive", "None"],
+          "description": "The user's primary goal in the app"
+        },
+        "createdAt": {
+          "type": "timestamp"
+        },
+        "updatedAt": {
+          "type": "timestamp"
+        }
+      },
+      "required": ["goal", "createdAt", "updatedAt"]
+    },
+    "dailyLog": {
+      "title": "Daily Log",
+      "description": "Health log for a specific day.",
+      "type": "object",
+      "properties": {
+        "mood": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Mood descriptor"
+        },
+        "mucus": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Cervical mucus descriptor"
+        },
+        "symptoms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "maxLength": 20,
+          "description": "List of physical symptoms"
+        },
+        "updatedAt": {
+          "type": "timestamp"
+        }
+      },
+      "required": ["updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/user" },
+      "description": "Stores user profiles."
+    },
+    "users/{userId}/dailyLogs/{dateId}": {
+      "schema": { "$ref": "#/entities/dailyLog" },
+      "description": "Stores daily health logs for a user."
+    }
+  }
+}

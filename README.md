@@ -1,2 +1,20 @@
-# hercycle1
-🌸 HerCycle is a smart menstrual and wellness tracking app that helps girls and women track periods, symptoms, moods, wellness, and cycle insights. With Student Mode, health education, reminders, and personalized insights, HerCycle makes menstrual health simple, informative, and empowering. 💗
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+</div>
+
+# Run and deploy your AI Studio app
+
+This contains everything you need to run your app locally.
+
+View your app in AI Studio: https://ai.studio/apps/2061e6b1-1529-4d37-8e48-5c951c44eb42
+
+## Run Locally
+
+**Prerequisites:**  Node.js
+
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
